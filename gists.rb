@@ -9,7 +9,7 @@ require 'thor'
 class Gist
   def initialize(path:, tags: [].to_set, language: nil, description: nil)
     @path = path
-    @tags = tags.map(&:downcase)
+    @tags = tags.map(&:downcase).to_set
     @language = language&.downcase
     @description = description&.downcase
   end
@@ -73,9 +73,17 @@ class App < Thor
   def find
     gists = load_gists
 
-    gists.select! { |gist| gist.language.downcase == language } if language = options[:language]&.downcase
-    gists.select! { |gist| gist.tags.superset? tags } if tags = options[:tags]&.map(&:downcase)
-    gists.select! { |gist| gist.description.downcase.include? description } if description = options[:description]&.downcase
+    if language = options[:language]&.downcase
+      gists.select! { |gist| gist.language.downcase == language }
+    end
+
+    if tags = options[:tags]&.map(&:downcase)&.to_set
+      gists.select! { |gist| gist.tags.superset? tags }
+    end
+
+    if description = options[:description]&.downcase
+      gists.select! { |gist| gist.description.downcase.include? description }
+    end
 
     gists.each do |gist|
       puts gist.path.dirname.to_s
